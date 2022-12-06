@@ -1,8 +1,7 @@
 import { Router } from 'express';
+import { requestLeave } from '../controllers/leaveController';
 const leaveRouter = Router();
 
-leaveRouter.get('/', (req, res) => {
-  res.send('our leaves');
-});
+leaveRouter.post('/reqLeave', requestLeave);
 
 export default leaveRouter;

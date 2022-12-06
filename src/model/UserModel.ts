@@ -3,21 +3,12 @@ import mongoose, { Model } from 'mongoose';
 import { ObjectId } from 'mongoose';
 
 //create a type user
-type UserType = UserModel & mongoose.Document;
+export type UserType = UserModel & mongoose.Document;
 
 export interface UserModel {
-  name: {
-    type: String;
-    required: true;
-  };
-  email: {
-    type: String;
-    required: true;
-  };
-  designation: {
-    type: String;
-    required: true;
-  };
+  name: string;
+  email: string;
+  designation: string;
 }
 
 const UserSchema = new mongoose.Schema(
