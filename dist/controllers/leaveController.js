@@ -12,13 +12,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.requestLeave = void 0;
+exports.updateLeave = exports.getFutureLeaves = exports.getAbsentEmployeesForToday = exports.getLeaveById = exports.getAllLeaves = exports.requestLeave = void 0;
 const lodash_1 = __importDefault(require("lodash"));
+const moment_1 = __importDefault(require("moment"));
 const LeaveModel_1 = __importDefault(require("../model/LeaveModel"));
 const UserModel_1 = __importDefault(require("../model/UserModel"));
 //add new leave request
 const requestLeave = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const leaveData = lodash_1.default.pick(req.body, [
+        '_id',
         'reason',
         'startDate',
         'endDate',
@@ -75,8 +77,71 @@ const requestLeave = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     //return success
     return res.json({
         status: true,
-        msg: `${userLeave === null || userLeave === void 0 ? void 0 : userLeave.name} is on ${leaveData.leaveType} leave from ${leaveData.startDate} to ${leaveData.endDate}`,
+        msg: `${userLeave === null || userLeave === void 0 ? void 0 : userLeave.name} will be on ${leaveData.leaveType} leave from ${leaveData.startDate} to ${leaveData.endDate}`,
         leave,
     });
 });
 exports.requestLeave = requestLeave;
+//get all leaves
+const getAllLeaves = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const leaves = yield LeaveModel_1.default.find().populate(`user`);
+    if (leaves.length > 0)
+        return res.json({ status: true, leaves });
+    return res.status(404).json({ status: false, message: 'no leaves found!' });
+});
+exports.getAllLeaves = getAllLeaves;
+//get leave by leave id
+const getLeaveById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const leave = yield LeaveModel_1.default.findById(req.params.id).populate(`user`);
+    if (leave)
+        return res.json({ status: true, leave });
+    return res
+        .status(404)
+        .json({ status: false, message: 'No such leave found!' });
+});
+exports.getLeaveById = getLeaveById;
+//see who is on leave for today
+const getAbsentEmployeesForToday = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var today = new Date();
+    var date = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
+    const startDateToday = `${date} 00:00:00`;
+    const endDateToday = `${date} 23:59:59`;
+    console.log(startDateToday, endDateToday);
+    const leaves = yield LeaveModel_1.default.find({
+        startDate: { $gte: new Date(startDateToday) },
+        endDate: { $lte: new Date(endDateToday) },
+    });
+    console.log(leaves);
+    if (leaves.length > 0)
+        return res.json({ status: true, leaves });
+    return res
+        .status(404)
+        .json({ status: false, msg: 'No employees on leave today' });
+});
+exports.getAbsentEmployeesForToday = getAbsentEmployeesForToday;
+//see future leaves
+const getFutureLeaves = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    let referenceDate = (0, moment_1.default)().add(1, 'days').format();
+    console.log(referenceDate);
+    let futureDate = referenceDate.split('T')[0];
+    console.log(futureDate);
+    const leaves = yield LeaveModel_1.default.find({ startDate: { $gt: futureDate } }).populate('user');
+    // console.log(leaves);
+    if (leaves.length > 0)
+        return res.json({ status: true, leaves });
+    return res.status(404).json({ status: false, msg: 'no leaves found!' });
+});
+exports.getFutureLeaves = getFutureLeaves;
+//update leave by id
+const updateLeave = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const leave = yield LeaveModel_1.default.findById(req.params.id);
+    if (leave) {
+        const updatedLeave = yield LeaveModel_1.default.findByIdAndUpdate(req.params.id, req.body, {
+            new: true,
+            runValidators: true,
+        });
+        return res.json({ status: true, msg: 'Leave updated!', updatedLeave });
+    }
+    return res.status(404).json({ status: false, msg: 'Leave not found' });
+});
+exports.updateLeave = updateLeave;
